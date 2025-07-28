@@ -3,8 +3,12 @@ name = "project-dev-shell"
 motd = """
 {202}🚀 Welcome to the development environment!{reset}
 
-{14}Available commands:{reset}
-$(devshell-menu)
+{14}Available tools:{reset}
+  • {202}helm{reset} - Kubernetes package manager
+  • {202}kubectl{reset} - Kubernetes CLI
+  • {202}replicated{reset} - Replicated Platform CLI
+  • {202}sops{reset} - Secrets management
+  • {202}git{reset}, {202}jq{reset}, {202}yq{reset} - Development utilities
 
 {14}Quick start:{reset}
   • Run {202}direnv allow{reset} to activate the environment
@@ -13,41 +17,19 @@ $(devshell-menu)
 
 """
 
-[[devshell.packages]]
-name = "direnv"
-category = "tools"
 
-[[devshell.packages]]
-name = "git"
-category = "vcs"
-
-[[devshell.packages]]
-name = "gnumake"
-category = "build"
-
-[[devshell.packages]]
-name = "sops"
-category = "security"
-
-[[devshell.packages]]
-name = "age"
-category = "security"
-
-[[devshell.packages]]
-name = "gnupg"
-category = "security"
-
-[[devshell.packages]]
-name = "curl"
-category = "network"
-
-[[devshell.packages]]
-name = "jq"
-category = "json"
-
-[[devshell.packages]]
-name = "yq-go"
-category = "yaml"
+packages = [
+  "git",
+  "gnumake", 
+  "sops",
+  "age",
+  "gnupg",
+  "curl",
+  "jq",
+  "yq-go",
+  "kubernetes-helm",
+  "kubectl"
+]
 
 [devshell.startup.load_dotenv]
 text = """

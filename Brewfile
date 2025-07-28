@@ -3,6 +3,7 @@
 
 # Taps
 tap "mozilla/sops"
+tap "replicatedhq/replicated"
 
 # Core development tools
 brew "git"
@@ -20,6 +21,13 @@ brew "yq"
 
 # Network tools
 brew "curl"
+
+# Kubernetes and Helm
+brew "helm"
+brew "kubectl"
+
+# Replicated Platform
+brew "replicated"
 
 # Version management
 # Note: semver-cli from https://github.com/maykonlsf/semver-cli
