@@ -1,0 +1,68 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Nix
+      uses: cachix/install-nix-action@v25
+      with:
+        github_access_token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Setup Cachix
+      uses: cachix/cachix-action@v14
+      with:
+        name: devenv
+        
+    - name: Enter development environment
+      run: nix develop --command echo "Development environment ready"
+      
+    - name: Check code formatting
+      run: |
+        nix develop --command make format
+        if ! git diff --quiet; then
+          echo "❌ Code is not properly formatted"
+          echo "📝 Please run 'make format' locally and commit the changes"
+          git diff
+          exit 1
+        else
+          echo "✅ Code formatting is correct"
+        fi
+        
+    - name: Run linting
+      run: nix develop --command make lint
+      
+    - name: Run tests
+      run: nix develop --command make test
+      
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Nix
+      uses: cachix/install-nix-action@v25
+      with:
+        github_access_token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Setup Cachix
+      uses: cachix/cachix-action@v14
+      with:
+        name: devenv
+        
+    - name: Build project
+      run: nix develop --command make build

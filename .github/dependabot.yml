@@ -1,0 +1,139 @@
+# Dependabot configuration for automatic dependency updates
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+
+version: 2
+updates:
+  # Nix flake inputs
+  - package-ecosystem: "nix"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    assignees:
+      - "@crdant"  # Replace with your GitHub username
+    commit-message:
+      # Creates commits like "Updates nixpkgs to 1.2.3"
+      prefix: "Updates"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "nix"
+    # PR title will be like "Updates nixpkgs from 1.2.0 to 1.2.3"
+    pull-request-branch-name:
+      separator: "-"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    assignees:
+      - "@crdant"  # Replace with your GitHub username
+    commit-message:
+      prefix: "Updates"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # Docker (if you add Dockerfile later)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 2
+    assignees:
+      - "@crdant"  # Replace with your GitHub username
+    commit-message:
+      prefix: "Updates"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # Node.js projects (uncomment when you have package.json)
+  # - package-ecosystem: "npm"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"
+  #     day: "monday"
+  #     time: "09:00"
+  #   open-pull-requests-limit: 10
+  #   assignees:
+  #     - "@crdant"  # Replace with your GitHub username
+  #   commit-message:
+  #     prefix: "npm"
+  #     prefix-development: "npm"
+  #     include: "scope"
+  #   labels:
+  #     - "dependencies"
+  #     - "javascript"
+  #   # Group minor and patch updates
+  #   groups:
+  #     development-dependencies:
+  #       dependency-type: "development"
+  #       update-types:
+  #         - "minor"
+  #         - "patch"
+  #     production-dependencies:
+  #       dependency-type: "production"
+  #       update-types:
+  #         - "patch"
+
+  # Python projects (uncomment when you have requirements.txt/pyproject.toml)
+  # - package-ecosystem: "pip"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"
+  #     day: "monday"
+  #     time: "09:00"
+  #   open-pull-requests-limit: 10
+  #   assignees:
+  #     - "@crdant"  # Replace with your GitHub username
+  #   commit-message:
+  #     prefix: "python"
+  #     include: "scope"
+  #   labels:
+  #     - "dependencies"
+  #     - "python"
+
+  # Go projects (uncomment when you have go.mod)
+  # - package-ecosystem: "gomod"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"
+  #     day: "monday"
+  #     time: "09:00"
+  #   open-pull-requests-limit: 10
+  #   assignees:
+  #     - "@crdant"  # Replace with your GitHub username
+  #   commit-message:
+  #     prefix: "go"
+  #     include: "scope"
+  #   labels:
+  #     - "dependencies"
+  #     - "golang"
+
+  # Rust projects (uncomment when you have Cargo.toml)
+  # - package-ecosystem: "cargo"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"
+  #     day: "monday"
+  #     time: "09:00"
+  #   open-pull-requests-limit: 10
+  #   assignees:
+  #     - "@crdant"  # Replace with your GitHub username
+  #   commit-message:
+  #     prefix: "rust"
+  #     include: "scope"
+  #   labels:
+  #     - "dependencies"
+  #     - "rust"

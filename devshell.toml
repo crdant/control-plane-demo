@@ -1,0 +1,74 @@
+[devshell]
+name = "project-dev-shell"
+motd = """
+{202}🚀 Welcome to the development environment!{reset}
+
+{14}Available commands:{reset}
+$(devshell-menu)
+
+{14}Quick start:{reset}
+  • Run {202}direnv allow{reset} to activate the environment
+  • Check {202}make help{reset} for available targets
+  • Use {202}sops{reset} for secrets management
+
+"""
+
+[[devshell.packages]]
+name = "direnv"
+category = "tools"
+
+[[devshell.packages]]
+name = "git"
+category = "vcs"
+
+[[devshell.packages]]
+name = "gnumake"
+category = "build"
+
+[[devshell.packages]]
+name = "sops"
+category = "security"
+
+[[devshell.packages]]
+name = "age"
+category = "security"
+
+[[devshell.packages]]
+name = "gnupg"
+category = "security"
+
+[[devshell.packages]]
+name = "curl"
+category = "network"
+
+[[devshell.packages]]
+name = "jq"
+category = "json"
+
+[[devshell.packages]]
+name = "yq-go"
+category = "yaml"
+
+[devshell.startup.load_dotenv]
+text = """
+# Load environment variables from .env if it exists
+if [ -f .env ]; then
+  echo "Loading environment variables from .env"
+  set -a
+  source .env
+  set +a
+fi
+"""
+
+[devshell.startup.project_setup]
+text = """
+# Create necessary directories
+mkdir -p .local/bin
+mkdir -p .local/share
+mkdir -p tmp
+
+# Add local bin to PATH if not already there
+if [[ ":$PATH:" != *":.local/bin:"* ]]; then
+  export PATH="$PWD/.local/bin:$PATH"
+fi
+"""

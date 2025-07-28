@@ -1,0 +1,32 @@
+# SOPS configuration file
+# https://github.com/mozilla/sops
+
+creation_rules:
+  # Default rule for secrets.yaml and other YAML files
+  - path_regex: \.yaml$
+    pgp: >-
+      # Replace with your GPG key fingerprint
+      # Get it with: gpg --list-secret-keys --keyid-format LONG
+      YOUR_GPG_KEY_FINGERPRINT_HERE
+    
+  # Rule for JSON files
+  - path_regex: \.json$
+    pgp: >-
+      # Replace with your GPG key fingerprint
+      YOUR_GPG_KEY_FINGERPRINT_HERE
+    
+  # Rule for environment files
+  - path_regex: \.env\.encrypted$
+    pgp: >-
+      # Replace with your GPG key fingerprint
+      YOUR_GPG_KEY_FINGERPRINT_HERE
+
+# Optional: Use age encryption instead of or in addition to PGP
+# Uncomment and configure if you prefer age over GPG
+# creation_rules:
+#   - path_regex: \.yaml$
+#     age: >-
+#       age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+#   - path_regex: \.json$
+#     age: >-
+#       age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
