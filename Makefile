@@ -1,7 +1,8 @@
 # Project Makefile
 # Common targets for development workflow
+PROJECTDIR := $(shell pwd)
 
-.PHONY: help setup clean build test lint format install dev patch minor major alpha beta rc encrypt decrypt update
+.PHONY: help setup clean build release test lint app patch minor major alpha beta rc encrypt decrypt update
 
 # Default target
 .DEFAULT_GOAL := help
@@ -13,110 +14,152 @@ YELLOW := \033[33m
 BLUE   := \033[34m
 RESET  := \033[0m
 
+# Commands
+SOPS    := sops
+SEMVER  := semver
+
+HELM       := helm
+KUBECTL     := kubectl
+REPLICATED := replicated
+
+# sources
+CHARTDIR    := $(PROJECTDIR)/charts
+CHARTS      := $(shell find $(CHARTDIR) -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+
+MANIFESTDIR := $(PROJECTDIR)/replicated
+MANIFESTS   := $(shell find $(MANIFESTDIR) -name '*.yaml' -o -name '*.yml')
+
+VERSION     ?= $(semver get release) 
+CHANNEL     := $(shell git branch --show-current)
+ifeq ($(CHANNEL), main)
+	CHANNEL=Unstable
+endif
+
+BUILDDIR      := $(PROJECTDIR)/build
+RELEASE_FILES := 
+
+define make-manifest-target
+$(BUILDDIR)/$(notdir $1): $1 | $$(BUILDDIR)
+	cp $1 $$(BUILDDIR)/$$(notdir $1)
+RELEASE_FILES := $(RELEASE_FILES) $(BUILDDIR)/$(notdir $1)
+manifests:: $(BUILDDIR)/$(notdir $1)
+endef
+$(foreach element,$(MANIFESTS),$(eval $(call make-manifest-target,$(element))))
+
+define make-chart-target
+$(eval VER := $(shell yq .version $(CHARTDIR)/$1/Chart.yaml))
+$(BUILDDIR)/$1-$(VER).tgz : $(CHARTDIR)/$1 $(shell find $(CHARTDIR)/$1 -name '*.yaml' -o -name '*.yml' -o -name "*.tpl" -o -name "NOTES.txt" -o -name "values.schema.json") | $$(BUILDDIR)
+ifeq ($1,openhands)
+	# Special handling for openhands chart to patch litellm-helm
+	helm dependency update $(CHARTDIR)/$1
+	$(MAKE) patch-litellm-helm OPENHANDS_CHARTDIR=$(CHARTDIR)/$1
+	helm package $(CHARTDIR)/$1 -d $(BUILDDIR)/
+else
+	helm package -u $(CHARTDIR)/$1 -d $(BUILDDIR)/
+endif
+RELEASE_FILES := $(RELEASE_FILES) $(BUILDDIR)/$1-$(VER).tgz
+charts:: $(BUILDDIR)/$1-$(VER).tgz
+test:: 
+	@helm test $(CHARTDIR)
+lint:: 
+	@helm lint $(CHARTDIR)
+endef
+$(foreach element,$(CHARTS),$(eval $(call make-chart-target,$(element))))
+
+$(BUILDDIR):
+	mkdir -p $(BUILDDIR)
+
 ## help: Show this help message
 help:
-	@echo "$(BLUE)Available targets:$(RESET)"
-	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_-]+:.*?##/ { printf "  $(GREEN)%-15s$(RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@echo -e "$(BLUE)Available targets:$(RESET)"
+	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[32m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 ## setup: Initial project setup
 setup:
-	@echo "$(YELLOW)Setting up project...$(RESET)"
+	@echo -e "$(YELLOW)Setting up project...$(RESET)"
 	@direnv allow
 	@if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || echo "# Project environment variables" > .env; fi
 	@git config core.hooksPath .githooks
-	@echo "$(GREEN)Setup complete! Git hooks activated.$(RESET)"
+	@if [ ! -f .semver.yaml ]; then semver init --release 0.1.0 ; fi
+	@echo -e "$(GREEN)Setup complete! Git hooks activated.$(RESET)"
+
+## app: Create Replicated application
+app: setup
+	@echo -e "$(YELLOW)Creating Replicated application 'Grafana'...$(RESET)"
+	@APP_SLUG=$$($(REPLLICATED) app create Grafana --output json | jq -r '.[].app.slug'); \
+	if [ "$$APP_SLUG" != "null" ] && [ -n "$$APP_SLUG" ]; then \
+		sed -i.bak "s/REPLICATED_APP=.*/REPLICATED_APP=$$APP_SLUG/" .env && rm .env.bak; \
+		echo -e "$(GREEN)Application created with slug: $$APP_SLUG$(RESET)"; \
+		echo -e "$(GREEN)Updated .env with app slug$(RESET)"; \
+	else \
+		echo -e "$(RED)Failed to create application$(RESET)"; \
+		exit 1; \
+	fi
 
 ## clean: Clean temporary files and build artifacts
 clean:
-	@echo "$(YELLOW)Cleaning up...$(RESET)"
-	@rm -rf tmp/ .tmp/ *.log
+	@echo -e "$(YELLOW)Cleaning up...$(RESET)"
+	@rm -rf tmp/ .tmp/ *.log build/*
 	@find . -name "*.tmp" -delete 2>/dev/null || true
-	@echo "$(GREEN)Cleanup complete!$(RESET)"
+	@echo -e "$(GREEN)Cleanup complete!$(RESET)"
 
 ## build: Build the project
-build:
-	@echo "$(YELLOW)Building project...$(RESET)"
-	@echo "$(RED)Build target not implemented - customize for your project$(RESET)"
+build: $(RELEASE_FILES)
+	@echo -e "$(YELLOW)Building project...$(RESET)"
+
+release: build
 
 ## test: Run tests
-test:
-	@echo "$(YELLOW)Running tests...$(RESET)"
-	@echo "$(RED)Test target not implemented - customize for your project$(RESET)"
+test:: $(RELEASE_FILES)
+	@echo -e "$(YELLOW)Running tests...$(RESET)"
 
 ## lint: Run linting
-lint:
-	@echo "$(YELLOW)Running linter...$(RESET)"
-	@echo "$(RED)Lint target not implemented - customize for your project$(RESET)"
-
-## format: Format code
-format:
-	@echo "$(YELLOW)Formatting code...$(RESET)"
-	@if command -v prettier >/dev/null 2>&1; then \
-		prettier --write "**/*.{js,ts,jsx,tsx,json,yaml,yml,md}" 2>/dev/null || true; \
-	fi
-	@if command -v black >/dev/null 2>&1; then \
-		black . 2>/dev/null || true; \
-	fi
-	@if command -v rustfmt >/dev/null 2>&1; then \
-		find . -name "*.rs" -exec rustfmt {} \; 2>/dev/null || true; \
-	fi
-	@if command -v gofmt >/dev/null 2>&1; then \
-		gofmt -w . 2>/dev/null || true; \
-	fi
-	@echo "$(GREEN)Code formatting complete!$(RESET)"
-
-## install: Install dependencies
-install:
-	@echo "$(YELLOW)Installing dependencies...$(RESET)"
-	@echo "$(RED)Install target not implemented - customize for your project$(RESET)"
-
-## dev: Start development server
-dev:
-	@echo "$(YELLOW)Starting development server...$(RESET)"
-	@echo "$(RED)Dev target not implemented - customize for your project$(RESET)"
+lint:: $(RELEASE_FILES)
+	@echo -e "$(YELLOW)Running linter...$(RESET)"
+	@$(REPLICATED) release lint --yaml-dir $(BUILD_DIR)
 
 ## patch: Bump patch version
 patch:
-	@echo "$(YELLOW)Bumping patch version...$(RESET)"
+	@echo -e "$(YELLOW)Bumping patch version...$(RESET)"
 	@semver-cli bump patch
 
 ## minor: Bump minor version
 minor:
-	@echo "$(YELLOW)Bumping minor version...$(RESET)"
+	@echo -e "$(YELLOW)Bumping minor version...$(RESET)"
 	@semver-cli bump minor
 
 ## major: Bump major version
 major:
-	@echo "$(YELLOW)Bumping major version...$(RESET)"
+	@echo -e "$(YELLOW)Bumping major version...$(RESET)"
 	@semver-cli bump major
 
 ## alpha: Create alpha pre-release
 alpha:
-	@echo "$(YELLOW)Creating alpha pre-release...$(RESET)"
+	@echo -e "$(YELLOW)Creating alpha pre-release...$(RESET)"
 	@semver-cli bump prerelease --identifier alpha
 
 ## beta: Create beta pre-release
 beta:
-	@echo "$(YELLOW)Creating beta pre-release...$(RESET)"
+	@echo -e "$(YELLOW)Creating beta pre-release...$(RESET)"
 	@semver-cli bump prerelease --identifier beta
 
 ## rc: Create release candidate
 rc:
-	@echo "$(YELLOW)Creating release candidate...$(RESET)"
+	@echo -e "$(YELLOW)Creating release candidate...$(RESET)"
 	@semver-cli bump prerelease --identifier rc
 
 ## encrypt: Encrypt secrets with SOPS
 encrypt:
-	@echo "$(YELLOW)Encrypting secrets...$(RESET)"
-	@if [ -f secrets.yaml ]; then sops -e -i secrets.yaml; else echo "$(RED)secrets.yaml not found$(RESET)"; fi
+	@echo -e "$(YELLOW)Encrypting secrets...$(RESET)"
+	@if [ -f secrets.yaml ]; then sops -e -i secrets.yaml; else echo -e "$(RED)secrets.yaml not found$(RESET)"; fi
 
 ## decrypt: Decrypt secrets with SOPS
 decrypt:
-	@echo "$(YELLOW)Decrypting secrets...$(RESET)"
-	@if [ -f secrets.yaml ]; then sops -d secrets.yaml; else echo "$(RED)secrets.yaml not found$(RESET)"; fi
+	@echo -e "$(YELLOW)Decrypting secrets...$(RESET)"
+	@if [ -f secrets.yaml ]; then sops -d secrets.yaml; else echo -e "$(RED)secrets.yaml not found$(RESET)"; fi
 
 ## update: Update Nix flake inputs
 update:
-	@echo "$(YELLOW)Updating Nix flake inputs...$(RESET)"
+	@echo -e "$(YELLOW)Updating Nix flake inputs...$(RESET)"
 	@nix flake update
-	@echo "$(GREEN)Flake inputs updated!$(RESET)"
+	@echo -e "$(GREEN)Flake inputs updated!$(RESET)"

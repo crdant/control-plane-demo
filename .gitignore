@@ -295,5 +295,14 @@ lib/bundler/man/
 .dockerignore
 docker-compose.override.yml
 
-# Kubernetes
+# Kubernetes & Helm
 *.kubeconfig
+kubeconfig
+.kube/
+charts/*/charts/
+charts/*/Chart.lock
+*.tgz
+requirements.lock
+
+# Helm dependency cache
+charts/*/tmpcharts/
