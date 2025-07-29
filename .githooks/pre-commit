@@ -1,32 +1,11 @@
 #!/usr/bin/env bash
-# Pre-commit hook to format code automatically
+# Pre-commit hook for Helm/Replicated project
 
 set -e
 
-echo "🔧 Running code formatter..."
+echo "🔧 Running pre-commit checks..."
 
-# Run make format to automatically format code
-if ! make format; then
-    echo "❌ Code formatting failed"
-    exit 1
-fi
-
-# Check if any files were modified by formatting
-if ! git diff --quiet; then
-    echo "📝 Code was automatically formatted. Staging changes..."
-    
-    # Get list of files that were modified
-    modified_files=$(git diff --name-only)
-    
-    # Add the formatted files back to staging
-    git add $modified_files
-    
-    echo "✅ Formatted files have been staged:"
-    echo "$modified_files"
-    echo ""
-    echo "💡 Your commit will include the formatted changes."
-else
-    echo "✅ Code is already properly formatted"
-fi
+# Skip formatting for Helm/Replicated projects as there are no standard formatters
+echo "📝 Skipping code formatting (not applicable for Helm charts)"
 
 echo "🚀 Pre-commit checks passed!"
