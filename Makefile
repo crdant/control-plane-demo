@@ -60,9 +60,9 @@ endif
 RELEASE_FILES := $(RELEASE_FILES) $(BUILDDIR)/$1-$(VER).tgz
 charts:: $(BUILDDIR)/$1-$(VER).tgz
 test:: 
-	@helm test $(CHARTDIR)
+	@helm test $(CHARTDIR)/$1
 lint:: 
-	@helm lint $(CHARTDIR)
+	@helm lint $(CHARTDIR)/$1
 endef
 $(foreach element,$(CHARTS),$(eval $(call make-chart-target,$(element))))
 
@@ -116,7 +116,7 @@ test:: $(RELEASE_FILES)
 ## lint: Run linting
 lint:: $(RELEASE_FILES)
 	@echo -e "$(YELLOW)Running linter...$(RESET)"
-	@$(REPLICATED) release lint --yaml-dir $(BUILD_DIR)
+	@$(REPLICATED) release lint --yaml-dir $(BUILDDIR)
 
 ## patch: Bump patch version
 patch:
